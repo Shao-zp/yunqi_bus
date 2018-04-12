@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.yunqi.bus.mapper.SelectListMapper">
+    <resultMap type="com.yunqi.bus.model.Bus" id="tBusRoleMap">
+        <result property="busNum" column="bus_num"/>
+    </resultMap>
+    <select id="getCompanyList" parameterType="map" resultMap="tBusRoleMap">
+
+      SELECT company from eb_select_list GROUP BY company;
+
+    </select>
+
+    <select id="getRouteList" parameterType="map" resultMap="tBusRoleMap">
+
+      SELECT route from eb_select_list where company = #{company} group by route
+
+    </select>
+
+    <select id="getVehicleList" parameterType="map" resultMap="tBusRoleMap">
+
+      SELECT bus_num from eb_select_list where company = #{company} and route = #{route}
+
+    </select>
+
+    <select id="getPoint" parameterType="map" resultMap="tBusRoleMap">
+
+      select bus_num,`month`,truncate(avg(a.capacity),2) capacity from (
+	    SELECT bus_num,DATE_FORMAT(date,'%Y%m') `month`,TRUNCATE(consum_power/(power_percent/100),2) capacity from bus_data where company = #{company} and route = #{route}
+      ) a  WHERE a.capacity <![CDATA[ < ]]> 450 and a.capacity &gt;50
+      group by bus_num,`month` order by bus_num,`month` asc
+
+    </select>
+
+    <select id="getRealPoint" parameterType="map" resultMap="tBusRoleMap">
+
+        SELECT bus_num,`date`,capacity FROM (
+          SELECT bus_num,`date`,TRUNCATE(a.consum_power/a.power_percent*100,2) AS capacity  from bus_data a where company = #{company} and route = #{route} and (#{vehicle} = bus_num)
+        ) a
+        WHERE a.capacity <![CDATA[ < ]]> 450 and a.capacity &gt;50
+        order by bus_num,`date` asc
+
+    </select>
+</mapper>

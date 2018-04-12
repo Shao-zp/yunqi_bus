@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <style>
+		html {
+			width: 100%;
+			height: 100%;
+		}
+
+		body {
+			margin: 0px;
+			padding: 0px;
+			width: 100%;
+			height: 100%;
+		}
+		
+        #main {
+			width: 100%;
+			margin: 0px auto;
+			min-height: 100%;
+			height: auto !important;
+			height: 100%;
+			float: left;
+			position: relative;
+			overflow-x: hidden;
+			overflow-y: visible;
+			background-color: #000;
+        }
+            
+        label {
+        	color: #ffaf51;
+        	font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+        	margin: auto 10px auto 30px;
+        	height: 22px;
+       	}
+            
+        select {
+        	color: #000;
+        	font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+        	width: 100px;
+        	height: 22px
+       	}
+    </style>
+</head>
+	
+<head>
+    <meta charset="UTF-8">
+    <script src="static/js/echarts.js"></script>
+    <script src="static/js/jquery-1.8.0.js"></script>
+    <script src="static/js/eb_data.js"></script>
+    <script src="static/js/dark.js"></script>
+    <title>公交车辆电池变化</title>
+</head>
+<body>
+    <div id="main">
+    	<div id="wrapper" style="width: 1800px; height:860px; margin: 0px auto; padding: 80px 0px 0px;">
+            <div id="chart" style="width: 100%; height:80%;"></div>
+            <div id="condition" style="width: 100%; height:20%;">
+                <div style="width: 800px; height: auto; margin: 0px auto">
+                    <label>选择公司：</label>
+                    <select id="company_select" style="width: 140px;"></select>
+                    <label>选择路线：</label>
+                    <select id="route_select"></select>
+                    <label>选择车辆：</label>
+                    <select id="vehicle_select"></select>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script type="text/javascript">
+        var myChart = echarts.init(document.getElementById('chart'), 'dark');	//定义折线图显示的位置对象
+
+        function invokeApi(url, param, callback) {
+            $.ajax({
+                type: "post",
+                url: url,
+                data: param,
+                dataType: "json",
+                success: function (result) {
+                    callback(result);
+                }
+            });
+        }
+
+		function doDrawChart(data) {
+            var company = data.company;
+            var route = data.route;
+			var targets = [];
+			var series = [];
+			var xdata = data.vechiles;
+			
+			//if(arguments.length < 3) {
+				for (var prop in xdata) {
+					targets.push(prop);
+		         	series.push({
+		         			name: prop,
+		         			type: 'line',
+		         			hoverAnimation: false,
+		         			data: xdata[prop]
+		         	});
+		                
+				};
+			/*} else {
+				targets.push(vechile);
+				series.push({
+		         			name: vechile,
+		         			type: 'line',
+		         			hoverAnimation: false,
+		         			data: //xdata[vechile]
+		         	});
+			}*/
+			
+	        option = {
+	            title: {
+	                text: company + route + '路线车辆电池变化',
+	                left:'center' 
+	            },
+			    legend: {
+			    	type: 'scroll',
+	                orient: 'vertical',
+	                right: 10,
+	                top: 20,
+	                bottom: 20,
+	                data: targets
+			    },
+			    toolbox: {
+			        show : true,
+			        feature : {
+			            mark : {show: true},
+			            dataView : {show: true, readOnly: false},
+			            magicType : {show: true, type: ['line', 'bar']},
+			            restore : {show: true},
+			            saveAsImage : {show: true}
+			        }
+			    },
+	            tooltip: {
+	                trigger: 'axis',
+	                axisPointer: {
+	                    animation: true
+	                }
+	            },
+	            xAxis: {
+	                type: 'category',
+	                splitLine: {
+	                    show: false
+	                },
+	                name: '日期（年月）'
+	            },
+	            yAxis: {
+	                type: 'value',
+	              	scale: true,
+	                splitLine: {
+	                    show: false
+	                },
+	                name: '电池容量（千瓦时）'
+	            },
+	            series: series
+	        };
+	        
+	        myChart.setOption(option, true);
+		}
+
+		function doDrawSelectCondition(data) {
+            var companyDom = $("#company_select");
+            var routeDom = $("#route_select");
+            var vehicleDom = $("#vehicle_select");
+            var eb_select = data;
+
+            for (var prop in eb_select) {
+                companyDom.append("<option value='" + prop + "'>" + prop + "</option>");
+            }
+
+            var company = companyDom.children('option:selected').val();
+            for (var prop in eb_select[company]) {
+                routeDom.append("<option value='" + prop + "'>" + prop + "</option>");
+            }
+
+            companyDom.change(function(){
+                var company = $(this).children('option:selected').val();
+                var routes = eb_select[company];
+
+                routeDom.find("option:selected").removeAttr("selected");
+                routeDom.empty();
+
+                for (var prop in routes) {
+                    routeDom.append("<option value='" + prop + "'>" + prop + "</option>");
+                }
+
+                routeDom.trigger('change');
+            });
+
+            routeDom.change(function(){
+                var company = companyDom.children('option:selected').val();
+                var route = $(this).children('option:selected').val();
+                var vehicles = eb_select[company][route];
+
+                vehicleDom.find("option:selected").removeAttr("selected");
+                vehicleDom.empty();
+
+                vehicleDom.append("<option value='NIL'>请选择</option>");
+                for (var i in vehicles) {
+                    vehicleDom.append("<option value='" + vehicles[i] + "'>" + vehicles[i] + "</option>");
+                }
+
+                vehicleDom.trigger('change');
+            });
+
+            vehicleDom.change(function(){
+                var company = companyDom.children('option:selected').val();
+                var route = routeDom.children('option:selected').val();
+                var vehicle = $(this).children('option:selected').val();
+
+                invokeApi('/get_bus', {'company': company, 'route': route, 'vehicle': vehicle}, doDrawChart);
+
+
+                //if(vehicle == 'NIL')
+                    //doDrawChart(company, route);
+                //else
+                    //doDrawChart(company, route, vehicle);
+            });
+
+            companyDom.trigger('change');
+        };
+
+	　　$(document).ready(function(){
+          invokeApi('/get_select_condition', {}, doDrawSelectCondition());
+          invokeApi('/get_select_condition', {'company': company}, doDrawSelectCondition());
+          invokeApi('/get_select_condition', {'company': company, 'route': route}, doDrawSelectCondition());
+        })
+    </script>
+</body>
+</html>
