@@ -267,7 +267,7 @@
         companyDom.change(function(){
             var company = $(this).children('option:selected').val();
             var param = {'company': company};
-            ('/get_routeList'invokeApi, param, doDrawRouteSelect);
+            invokeApi('/get_routeList', param, doDrawRouteSelect);
         });
 
         //on change of route select-element
